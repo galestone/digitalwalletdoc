@@ -675,7 +675,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | height        | int    | 区块高度，交易被打包入的区块编号                        |
 | memo          | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                |
 | orderID       | string | 商户系统生成的提现订单号                                |
-| status        | string | 提现状态；`success`=成功，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够 |
+| status        | string | 提现状态；`success`=成功， `cancel`=取消，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够|
 | time          | int    | 提现完成时间，Unix 时间戳（秒）                         |
 | tokenAddress  | string | 提现代币合约地址                                        |
 | tokenSymbol   | string | 提现代币符号，如 `USDT`                                 |
