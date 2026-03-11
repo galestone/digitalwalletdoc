@@ -71,6 +71,23 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 # digest 应与 Header X-Signature 一致
 ```
 
+> **Java 示例：创建充值订单并签名**
+
+你可以参考下方 `DepositCreateTest.java` 提供的 Java 示例，进行 POST 签名请求。该示例会向 `/v2/deposit/create` 发起创建充值订单的请求，并使用 HMAC-SHA256 对请求体签名。
+
+> **完整代码参考：** [`DepositCreateTest.java`](./DepositCreateTest.java)
+
+
+**要点说明：**
+- `SIGN_KEY` 和 `API_KEY`、`URL` 请替换为你在后台获取的真实值。
+- 构造参数及 JSON 格式需与平台接口一致。
+- 签名方式需严格使用 HMAC-SHA256，内容为原始 body 串，编码为 UTF-8。
+- 签名结果写入请求头 `X-Signature`，API Key 写入 `apikey`。
+- Content-Type 需为 `text/plain`。
+
+> 如需其他语言示例（如 Python），可参考上文签名校验部分，也可联系我们获取更多 SDK 示例。
+
+
 ---
 
 ## V2 接口概览
@@ -656,7 +673,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | chain         | string | 区块链名称，如 `eth`  `tron`                            |
 | confirmations | int    | 区块链上确认数（通常 ≥1 表示已到账）                    |
 | height        | int    | 区块高度，交易被打包入的区块编号                        |
-| memo          | string | 提现备注/业务方订单号（和 orderID 相同）                |
+| memo          | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                |
 | orderID       | string | 商户系统生成的提现订单号                                |
 | status        | string | 提现状态；`success`=成功，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够 |
 | time          | int    | 提现完成时间，Unix 时间戳（秒）                         |
