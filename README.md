@@ -164,11 +164,12 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **响应 data：**
 
-| 字段     | 类型   | 说明                                |
-| -------- | ------ | ----------------------------------- |
-| addr     | string | 充值地址（与 accountID 绑定，幂等） |
-| orderID  | string | 传入 order 时返回                   |
-| expireAt | int64  | 传入 order 时返回订单过期时间戳     |
+| 字段       | 类型   | 说明                                |
+| ---------- | ------ | ----------------------------------- |
+| addr       | string | 充值地址（与 accountID 绑定，幂等） |
+| orderID    | string | 传入 order 时返回                   |
+| expireAt   | int64  | 传入 order 时返回订单过期时间戳     |
+| paymentUrl | string | 支付页面链接                        |
 
 响应body示例:
 ```json
@@ -178,7 +179,8 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
     "data": {
         "addr": "TH7tskbKTXVUuerVG97Tj1csBRN3R1buNR",
         "orderID": "W20260308700",
-        "expireAt": 1773590073
+        "expireAt": 1773590073,
+        "paymentUrl": "http://154.82.113.141:21001/v2/deposit/pay?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtaWQiOjIwMDI5MzcxMzU0Njc4NTk5NjgsIm9pZCI6Ilc0MDI2MDMxODgwMzkiLCJleHAiOjE3NzMyNDI2NjUsImlhdCI6MTc3MzIzODY5NX0.7gF-3LHBKeeKWdtW1qdpn3cVDE5hDKDft68OVdK_nfs"
     }
 }
 ```
