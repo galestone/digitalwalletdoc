@@ -125,7 +125,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | ------------ | ------ | ---- | ---------------------------------------------------- |
 | orderID      | string | 是  | 商户订单号（传 order 时必填），商户内唯一            |
 | amount       | string | 是  | 期望充值金额（传 order 时必填，支持小数）            |
-| contractAddr | string | 否   | 代币合约地址                                         |
+| contractAddr | string | 是   | 代币合约地址                                         |
 | expireAt     | int64  | 否   | 订单过期时间戳（秒）；不传则默认 7 天内              |
 | callbackURL  | string | 否   | 订单级充值回调地址；非空时优先于商户默认充值回调地址 |
 
