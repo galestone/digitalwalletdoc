@@ -138,13 +138,13 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **order 对象（可选）：**
 
-| 参数         | 类型   | 必填 | 说明                                                 |
-| ------------ | ------ | ---- | ---------------------------------------------------- |
-| orderID      | string | 是  | 商户订单号（传 order 时必填），商户内唯一            |
-| amount       | string | 是  | 期望充值金额（传 order 时必填，支持小数）            |
-| contractAddr | string | 是   | 代币合约地址                                         |
-| expireAt     | int64  | 否   | 订单过期时间戳（秒）；不传则默认 7 天内              |
-| callbackURL  | string | 否   | 订单级充值回调地址；非空时优先于商户默认充值回调地址 |
+| 参数         | 类型   | 必填 | 说明                                                                     |
+| ------------ | ------ | ---- | ------------------------------------------------------------------------ |
+| orderID      | string | 是   | 商户订单号（传 order 时必填），商户内唯一                                |
+| amount       | string | 是   | 期望充值金额（传 order 时必填，支持小数）                                |
+| contractAddr | string | 是   | 代币合约地址                                                             |
+| expireAt     | int64  | 否   | 订单过期时间戳（秒）；不传则默认 1小时 过期，过期时间必要是5分钟到24小时 |
+| callbackURL  | string | 否   | 订单级充值回调地址；非空时优先于商户默认充值回调地址                     |
 
 请求body示例:
 ```json
@@ -667,20 +667,20 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
     }
     ```
 ### 提现回调
-| 字段名        | 类型   | 说明                                                    |
-| ------------- | ------ | ------------------------------------------------------- |
-| address       | string | 提现地址                                                |
-| chain         | string | 区块链名称，如 `eth`  `tron`                            |
-| confirmations | int    | 区块链上确认数（通常 ≥1 表示已到账）                    |
-| height        | int    | 区块高度，交易被打包入的区块编号                        |
-| memo          | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                |
-| orderID       | string | 商户系统生成的提现订单号                                |
-| status        | string | 提现状态；`success`=成功， `cancel`=取消，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够|
-| time          | int    | 提现完成时间，Unix 时间戳（秒）                         |
-| tokenAddress  | string | 提现代币合约地址                                        |
-| tokenSymbol   | string | 提现代币符号，如 `USDT`                                 |
-| tokenValue    | string | 提现的代币数量（字符串格式，适配大数）                  |
-| txid          | string | 区块链交易哈希                                          |
+| 字段名        | 类型   | 说明                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| address       | string | 提现地址                                                                                                |
+| chain         | string | 区块链名称，如 `eth`  `tron`                                                                            |
+| confirmations | int    | 区块链上确认数（通常 ≥1 表示已到账）                                                                    |
+| height        | int    | 区块高度，交易被打包入的区块编号                                                                        |
+| memo          | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                                                         |
+| orderID       | string | 商户系统生成的提现订单号                                                                                |
+| status        | string | 提现状态；`success`=成功， `cancel`=取消，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够 |
+| time          | int    | 提现完成时间，Unix 时间戳（秒）                                                                         |
+| tokenAddress  | string | 提现代币合约地址                                                                                        |
+| tokenSymbol   | string | 提现代币符号，如 `USDT`                                                                                 |
+| tokenValue    | string | 提现的代币数量（字符串格式，适配大数）                                                                  |
+| txid          | string | 区块链交易哈希                                                                                          |
 
 
 * 正常回调示例
