@@ -209,7 +209,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | total | int64 | 总条数       |
 | items | array | 充值订单列表 |
 
-**items 元素（MerchantDepositOrder）：** 含 `id`、`merchantID`、`orderID`、`chain`、`accountID`、`accountAddr`、`contractAddr`、`amount`、`expireAt`、`status`、`createdAt`、`updatedAt` 等。`status`：1=待支付，2=已完成，3=已取消，4=已超时。
+**items 元素（MerchantDepositOrder）：** 含 `id`、`merchantID`、`orderID`、`chain`、`accountID`、`accountAddr`、`contractAddr`、`amount`、`expireAt`、`status`、`fromTokenValueOnChain`、`createdAt`、`updatedAt` 等。`status`：1=待支付，2=已完成，3=已取消，4=已超时。
 
 响应body示例:
 ```json
@@ -230,6 +230,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
                 "amount": "13.223",
                 "expireAt": 1773150908,
                 "status": 2,
+                "fromTokenValueOnChain": "82.22",
                 "callbackReq": "{\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
                 "callbackResp": "ok",
                 "callbackURL": "http://127.0.0.1:28080/merchant/testdeposit/create",
@@ -247,6 +248,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
                 "amount": "13.223",
                 "expireAt": 1773150408,
                 "status": 4,
+                "fromTokenValueOnChain": "",
                 "callbackReq": "",
                 "callbackResp": "",
                 "callbackURL": "http://127.0.0.1:28080/merchant/testdeposit/create",
@@ -290,6 +292,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
         "amount": "13.223",
         "expireAt": 1773150908,
         "status": 2,
+        "fromTokenValueOnChain": "82.22",
         "callbackReq": "{\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
         "callbackResp": "ok",
         "callbackURL": "W302603188007",
@@ -450,7 +453,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | total | int64 | 总条数                                                      |
 | items | array | 提现记录列表（ETH 为 Erc20Withdraw，TRON 为 Trc20Withdraw） |
 
-**items 元素：** 含 `id`、`orderID`、`from`、`to`、`txid`、`tokenAddress`、`tokenSymbol`、`amount`、`memo`（V2 中与 orderID 一致）、`status`、`confirmNum`、`currentConfirmNum`、`createdAt`、`updatedAt` 等。`status`：1=已入库等待广播，2=已广播等待确认，3=已完成，4=链上失败，5=已取消，6=未知。
+**items 元素：** 含 `id`、`orderID`、`from`、`to`、`txid`、`tokenAddress`、`tokenSymbol`、`amount`、`memo`（V2 中与 orderID 一致）、`status`、`confirmNum`、`currentConfirmNum`、`toTokenValueBeforeWithdraw`、`createdAt`、`updatedAt` 等。`status`：1=已入库等待广播，2=已广播等待确认，3=已完成，4=链上失败，5=已取消，6=未知。
 
 响应json示例
 ```json
@@ -476,6 +479,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
                 "status": 3,
                 "confirmNum": 1,
                 "currentConfirmNum": 1,
+                "toTokenValueBeforeWithdraw": "2.12",
                 "callbackURL": "http://127.0.0.1:28080/merchant/testwithdrawwebhook/create2",
                 "createdAt": "2026-03-10T15:14:19.272+08:00",
                 "updatedAt": "2026-03-10T15:15:02.304+08:00"
@@ -524,6 +528,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
             "status": 3,
             "confirmNum": 1,
             "currentConfirmNum": 1,
+            "toTokenValueBeforeWithdraw": "2.12",
             "callbackURL": "http://127.0.0.1:28080/merchant/testwithdrawwebhook/create2",
             "createdAt": "2026-03-10T15:14:19.272+08:00",
             "updatedAt": "2026-03-10T15:15:02.304+08:00"
