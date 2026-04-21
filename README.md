@@ -341,11 +341,11 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **Query 参数：**
 
-| 参数     | 类型   | 必填 | 说明                |
-| -------- | ------ | ---- | ------------------- |
+| 参数     | 类型   | 必填 | 说明                       |
+| -------- | ------ | ---- | -------------------------- |
 | chain    | string | 是   | 链：`eth`、`tron` 或 `ton` |
-| page     | int    | 是   | 页码，从 1 开始     |
-| pageSize | int    | 是   | 每页条数，1～100    |
+| page     | int    | 是   | 页码，从 1 开始            |
+| pageSize | int    | 是   | 每页条数，1～100           |
 
 **响应 data：**
 
@@ -394,8 +394,8 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | 参数         | 类型   | 必填 | 说明                                                 |
 | ------------ | ------ | ---- | ---------------------------------------------------- |
 | chain        | string | 是   | 链：`eth`、`tron` 或 `ton`                           |
-| toAddr       | string | 是   | 收款地址（ETH 为 0x；TRON 为 T 开头） |
-| contractAddr | string | 是   | 代币合约地址 |
+| toAddr       | string | 是   | 收款地址（ETH 为 0x；TRON 为 T 开头）                |
+| contractAddr | string | 是   | 代币合约地址                                         |
 | amount       | string | 是   | 提现数量（支持小数）                                 |
 | orderID      | string | 是   | 商户提现订单号，商户内唯一                           |
 | callbackURL  | string | 否   | 订单级提现回调地址；非空时优先于商户默认提现回调地址 |
@@ -440,17 +440,17 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **Query 参数：**
 
-| 参数     | 类型   | 必填 | 说明                |
-| -------- | ------ | ---- | ------------------- |
+| 参数     | 类型   | 必填 | 说明                       |
+| -------- | ------ | ---- | -------------------------- |
 | chain    | string | 是   | 链：`eth`、`tron` 或 `ton` |
-| page     | int    | 是   | 页码，从 1 开始     |
-| pageSize | int    | 是   | 每页条数，1～100    |
+| page     | int    | 是   | 页码，从 1 开始            |
+| pageSize | int    | 是   | 每页条数，1～100           |
 
 **响应 data：**
 
-| 字段  | 类型  | 说明                                                        |
-| ----- | ----- | ----------------------------------------------------------- |
-| total | int64 | 总条数                                                      |
+| 字段  | 类型  | 说明                                                                            |
+| ----- | ----- | ------------------------------------------------------------------------------- |
+| total | int64 | 总条数                                                                          |
 | items | array | 提现记录列表（ETH 为 Erc20Withdraw，TRON 为 Trc20Withdraw，TON 为 TonWithdraw） |
 
 **items 元素：** 含 `id`、`orderID`、`from`、`to`、`txid`、`tokenAddress`、`tokenSymbol`、`amount`、`memo`（V2 中与 orderID 一致）、`status`、`confirmNum`、`currentConfirmNum`、`toTokenValueBeforeWithdraw`、`createdAt`、`updatedAt` 等。`status`：1=已入库等待广播，2=已广播等待确认，3=已完成，4=链上失败，5=已取消，6=未知。
@@ -499,10 +499,10 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **Query 参数：**
 
-| 参数    | 类型   | 必填 | 说明                     |
-| ------- | ------ | ---- | ------------------------ |
+| 参数    | 类型   | 必填 | 说明                       |
+| ------- | ------ | ---- | -------------------------- |
 | chain   | string | 是   | 链：`eth`、`tron` 或 `ton` |
-| orderID | string | 是   | 创建提现时传入的 orderID |
+| orderID | string | 是   | 创建提现时传入的 orderID   |
 
 **响应 data：** `item` 为单条提现记录对象。
 
@@ -576,19 +576,19 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 
 **Query 参数：**
 
-| 参数          | 类型   | 必填 | 说明                                                                                                 |
-| ------------- | ------ | ---- | ---------------------------------------------------------------------------------------------------- |
-| chain         | string | 是   | 链：`eth`、`tron` 或 `ton`                                                                           |
-| contractAddr  | string | 是   | 代币合约：ETH 传空或 `eth` 表示原生 ETH；TRON 传空或 `trx` 表示 TRX；|
-| syncFromChain | bool   | 否   | 为 `true` 时从链上同步最新余额，再返回；不传或为 `false` 时仅返回缓存值                              |
+| 参数          | 类型   | 必填 | 说明                                                                    |
+| ------------- | ------ | ---- | ----------------------------------------------------------------------- |
+| chain         | string | 是   | 链：`eth`、`tron` 或 `ton`                                              |
+| contractAddr  | string | 是   | 代币合约：ETH 传空或 `eth` 表示原生 ETH；TRON 传空或 `trx` 表示 TRX；   |
+| syncFromChain | bool   | 否   | 为 `true` 时从链上同步最新余额，再返回；不传或为 `false` 时仅返回缓存值 |
 
 **响应 data：**
 
-| 字段         | 类型   | 说明                                                   |
-| ------------ | ------ | ------------------------------------------------------ |
-| tokenBalance | string | 该合约代币余额（可用于提现的额度）                     |
+| 字段         | 类型   | 说明                                                                       |
+| ------------ | ------ | -------------------------------------------------------------------------- |
+| tokenBalance | string | 该合约代币余额（可用于提现的额度）                                         |
 | gasBalance   | string | 链上 gas 费余额：ETH 为 ETH，TRON 为 TRX，TON 为 TON（用于支付链上手续费） |
-| tokenSymbol  | string | 代币符号（如 ETH、TRX、TON、USDT 等），便于前端展示    |
+| tokenSymbol  | string | 代币符号（如 ETH、TRX、TON、USDT 等），便于前端展示                        |
 
 响应json示例
 ```json
@@ -678,21 +678,21 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
     }
     ```
 ### 提现回调
-| 字段名                     | 类型   | 说明                                                                                                    |
-| -------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| address                    | string | 提现地址                                                                                                |
-| chain                      | string | 区块链名称，如 `eth`、`tron`、`ton`                                                                     |
-| confirmations              | int    | 区块链上确认数（通常 ≥1 表示已到账）                                                                    |
-| height                     | int    | 区块高度，交易被打包入的区块编号                                                                        |
-| memo                       | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                                                         |
-| orderID                    | string | 商户系统生成的提现订单号                                                                                |
-| status                     | string | 提现状态；`success`=成功， `cancel`=取消，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够 |
-| time                       | int    | 提现完成时间，Unix 时间戳（秒）                                                                         |
-| tokenAddress               | string | 提现代币合约地址                                                                                        |
-| tokenSymbol                | string | 提现代币符号，如 `USDT`                                                                                 |
-| tokenValue                 | string | 提现的代币数量（字符串格式，适配大数）                                                                  |
-| toTokenValueBeforeWithdraw | string | 提现前，收款地址的代币数量（字符串格式，适配大数）                                                      |
-| txid                       | string | 区块链交易哈希                                                                                          |
+| 字段名                     | 类型   | 说明                                                                                                                   |
+| -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
+| address                    | string | 提现地址                                                                                                               |
+| chain                      | string | 区块链名称，如 `eth`、`tron`、`ton`                                                                                    |
+| confirmations              | int    | 区块链上确认数（通常 ≥1 表示已到账）                                                                                   |
+| height                     | int    | 区块高度，交易被打包入的区块编号                                                                                       |
+| memo                       | string | 提现备注/业务方订单号（和 orderID 相同,兼容v1）                                                                        |
+| orderID                    | string | 商户系统生成的提现订单号                                                                                               |
+| status                     | string | 提现状态；`success`=成功， `cancel`=取消，`token_insufficient`=代币不够，`gas_insufficient`=gas费用不够, `failed`=未知 |
+| time                       | int    | 提现完成时间，Unix 时间戳（秒）                                                                                        |
+| tokenAddress               | string | 提现代币合约地址                                                                                                       |
+| tokenSymbol                | string | 提现代币符号，如 `USDT`                                                                                                |
+| tokenValue                 | string | 提现的代币数量（字符串格式，适配大数）                                                                                 |
+| toTokenValueBeforeWithdraw | string | 提现前，收款地址的代币数量（字符串格式，适配大数）                                                                     |
+| txid                       | string | 区块链交易哈希                                                                                                         |
 
 
 * 正常回调示例
@@ -759,7 +759,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | 14003 | 商户数量或资源达到上限                   |
 | 14004 | 签名不合法                               |
 | 20101 | 提现配置错误（未配置、已禁用等）         |
-| 20102 | 提现地址 gas 费不足（ETH/TRX/TON 等）   |
+| 20102 | 提现地址 gas 费不足（ETH/TRX/TON 等）    |
 | 20103 | 提现地址代币余额不足                     |
 
 详细文案以响应中的 `msg` 为准。
