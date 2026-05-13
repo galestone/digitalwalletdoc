@@ -9,6 +9,7 @@
     - [签名校验](#签名校验)
   - [V2 接口概览](#v2-接口概览)
     - [通用响应结构](#通用响应结构)
+    - [代币合约地址约定](#代币合约地址约定)
   - [充值（Deposit）](#充值deposit)
     - [创建充值 / 获取地址](#创建充值--获取地址)
     - [充值订单列表](#充值订单列表)
@@ -118,6 +119,16 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 - `msg`：成功时为 `"success"`，失败时为具体描述。
 - `data`：成功时按接口约定返回；失败时通常无或为空。
 
+### 代币合约地址约定
+
+**目标代币**。除各链真实的 ERC20 / TRC20 / Jetton 等合约地址外，以下取值表示**该链原生代币**
+
+| 链 (`chain`) | `contractAddr` 取值 | 含义 |
+| ------------ | ------------------- | ---- |
+| `tron` | `T000000000000000000000000000000000` 或**空字符串** | 原生 **TRX** |
+| `eth` | `0x0000000000000000000000000000000000000000` 或**空字符串** | 原生 **ETH** |
+| `ton` | `__TON_NATIVE__` 或**空字符串** | 原生 **TON** |
+
 ---
 
 ## 充值（Deposit）
@@ -142,7 +153,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | ------------ | ------ | ---- | ------------------------------------------------------------------------ |
 | orderID      | string | 是   | 商户订单号（传 order 时必填），商户内唯一                                |
 | amount       | string | 是   | 期望充值金额（传 order 时必填，支持小数）                                |
-| contractAddr | string | 是   | 代币合约地址                                                             |
+| contractAddr | string | 是   | 代币合约地址；原生币写法见 [代币合约地址约定](#代币合约地址约定)         |
 | expireAt     | int64  | 否   | 订单过期时间戳（秒）；不传则默认 1小时 过期，过期时间必要是5分钟到24小时 |
 | callbackURL  | string | 否   | 订单级充值回调地址；非空时优先于商户默认充值回调地址                     |
 
@@ -395,7 +406,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | ------------ | ------ | ---- | ---------------------------------------------------- |
 | chain        | string | 是   | 链：`eth`、`tron` 或 `ton`                           |
 | toAddr       | string | 是   | 收款地址（ETH 为 0x；TRON 为 T 开头）                |
-| contractAddr | string | 是   | 代币合约地址                                         |
+| contractAddr | string | 是   | 代币合约地址；原生币写法见 [代币合约地址约定](#代币合约地址约定) |
 | amount       | string | 是   | 提现数量（支持小数）                                 |
 | orderID      | string | 是   | 商户提现订单号，商户内唯一                           |
 | callbackURL  | string | 否   | 订单级提现回调地址；非空时优先于商户默认提现回调地址 |
@@ -579,7 +590,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | 参数          | 类型   | 必填 | 说明                                                                    |
 | ------------- | ------ | ---- | ----------------------------------------------------------------------- |
 | chain         | string | 是   | 链：`eth`、`tron` 或 `ton`                                              |
-| contractAddr  | string | 是   | 代币合约：ETH 传空或 `eth` 表示原生 ETH；TRON 传空或 `trx` 表示 TRX；   |
+| contractAddr  | string | 是   | 目标代币合约；原生币（含 gas 币种）取值见 [代币合约地址约定](#代币合约地址约定)；|
 | syncFromChain | bool   | 否   | 为 `true` 时从链上同步最新余额，再返回；不传或为 `false` 时仅返回缓存值 |
 
 **响应 data：**
