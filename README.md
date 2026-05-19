@@ -24,6 +24,7 @@
     - [查询余额](#查询余额)
   - [回调说明](#回调说明)
     - [充值回调](#充值回调)
+      - [BTC 充值 op 说明](#btc-充值-op-说明)
     - [提现回调](#提现回调)
     - [回调客户返回值](#回调客户返回值)
   - [Telegram 通知接入](#telegram-通知接入)
@@ -621,9 +622,10 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | -------------- | ------ | ------------------------------------------------------- |
 | accountID      | string | 商户在钱包平台的唯一账号标识                            |
 | address        | string | 充值收款地址                                            |
-| chain          | string | 区块链名称，如 `eth`、`tron`、`ton`                     |
+| chain          | string | 区块链名称，如 `eth`、`tron`、`ton`、`btc`                |
 | confirmations  | int    | 区块链上确认数（通常 ≥1 表示已到账）                    |
 | height         | int    | 区块高度，交易被打包入的区块编号                        |
+| op             | string | **可选**。操作阶段，见下方 [BTC 充值 op 说明](#btc-充值-op-说明)；其它链可不传，等价于 `confirmed` |
 | orderID        | string | 商户系统生成的充值订单号                                |
 | status         | string | 充值状态；`success`=成功，`timeout`=超时，`cancel`=取消 |
 | time           | int    | 充值成功时间，Unix 时间戳（秒）                         |
@@ -632,6 +634,59 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | tokenValue     | string | 充值的代币数量（字符串格式，适配大数）                  |
 | fromTokenValue | string | from地址的代币数量                                      |
 | txid           | string | 区块链交易哈希                                          |
+
+#### BTC 充值 op 说明
+
+BTC 充值回调在通用字段之外增加 **`op`**，用于区分同一笔 `txid` 在不同阶段的通知（ETH / TRON / TON 等链一般不传 `op`，平台按 **`confirmed`** 语义处理，与历史行为兼容）。
+
+| op 值 | 含义 | 典型场景 |
+| ----- | ---- | -------- |
+| `add` | 检测到入账，尚未达到商户配置的确认数 | 交易已打包进块（扫块发现），或开启内存池监控时在内存池中出现 |
+| `confirmed` | 已达到确认数，入账完成 | 与 ETH/TRON 等链「到账成功」回调一致；此时 `status` 一般为 `success` |
+| `cancel` | 入账取消或无法完成确认 | 确认时库中已无对应充值记录；或内存池交易被替换/驱逐且未上链等 |
+
+**兼容约定：**
+
+- 若请求体中 **未包含 `op` 或 `op` 为空**，商户侧应视为 **`confirmed`**（与其它链充值成功回调一致）。
+- `op` 与 `status` 独立：`status` 表示业务结果（如 `success` / `cancel`），`op` 表示通知阶段。
+
+* BTC 入账（未确认）示例（`op=add`）
+
+```json
+{
+  "accountID": "100200300",
+  "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "chain": "btc",
+  "confirmations": 0,
+  "height": 920000,
+  "op": "add",
+  "status": "success",
+  "time": 1773150528,
+  "tokenAddress": "__BTC_NATIVE__",
+  "tokenSymbol": "BTC",
+  "tokenValue": "0.001",
+  "txid": "abc123..."
+}
+```
+
+* BTC 确认到账示例（`op=confirmed`）
+
+```json
+{
+  "accountID": "100200300",
+  "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "chain": "btc",
+  "confirmations": 1,
+  "height": 920000,
+  "op": "confirmed",
+  "status": "success",
+  "time": 1773150528,
+  "tokenAddress": "__BTC_NATIVE__",
+  "tokenSymbol": "BTC",
+  "tokenValue": "0.001",
+  "txid": "abc123..."
+}
+```
 
 * 正常回调示例
 ```json
