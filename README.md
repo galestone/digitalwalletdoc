@@ -24,7 +24,7 @@
     - [查询余额](#查询余额)
   - [回调说明](#回调说明)
     - [充值回调](#充值回调)
-      - [BTC 充值 op 说明](#btc-充值-op-说明)
+      - [BTC 充值 status 说明](#btc-充值-status-说明)
     - [提现回调](#提现回调)
     - [回调客户返回值](#回调客户返回值)
   - [Telegram 通知接入](#telegram-通知接入)
@@ -625,9 +625,8 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | chain          | string | 区块链名称，如 `eth`、`tron`、`ton`、`btc`                |
 | confirmations  | int    | 区块链上确认数（通常 ≥1 表示已到账）                    |
 | height         | int    | 区块高度，交易被打包入的区块编号                        |
-| op             | string | **可选**。操作阶段，见下方 [BTC 充值 op 说明](#btc-充值-op-说明)；其它链可不传，等价于 `confirmed` |
 | orderID        | string | 商户系统生成的充值订单号                                |
-| status         | string | 充值状态；`success`=成功，`timeout`=超时，`cancel`=取消 |
+| status         | string | 充值状态；见下方说明。ETH / TRON / TON 等链一般为 `success`（到账）、`timeout`、`cancel`；BTC 另见 [BTC 充值 status 说明](#btc-充值-status-说明) |
 | time           | int    | 充值成功时间，Unix 时间戳（秒）                         |
 | tokenAddress   | string | 充值的代币合约地址                                      |
 | tokenSymbol    | string | 充值代币符号，如 `USDT`                                 |
@@ -635,22 +634,38 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | fromTokenValue | string | from地址的代币数量                                      |
 | txid           | string | 区块链交易哈希                                          |
 
-#### BTC 充值 op 说明
+#### BTC 充值 status 说明
 
-BTC 充值回调在通用字段之外增加 **`op`**，用于区分同一笔 `txid` 在不同阶段的通知（ETH / TRON / TON 等链一般不传 `op`，平台按 **`confirmed`** 语义处理，与历史行为兼容）。
+BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段（不再使用 `op` 字段）。ETH / TRON / TON 等链仍仅在链上确认后回调，且 `status` 一般为 `success`。
 
-| op 值 | 含义 | 典型场景 |
-| ----- | ---- | -------- |
-| `add` | 检测到入账，尚未达到商户配置的确认数 | 交易已打包进块（扫块发现），或开启内存池监控时在内存池中出现 |
-| `confirmed` | 已达到确认数，入账完成 | 与 ETH/TRON 等链「到账成功」回调一致；此时 `status` 一般为 `success` |
+| status 值 | 含义 | 典型场景 |
+| --------- | ---- | -------- |
+| `mempool` | 内存池检测到入账，尚未打包 | 开启内存池监控时，交易出现在内存池中 |
+| `packed` | 已打包进块，尚未达到商户配置的确认数 | 扫块发现入账，或内存池交易被打包 |
+| `success` | 已达到确认数，入账完成 | 与 ETH/TRON 等链「到账成功」回调一致 |
 | `cancel` | 入账取消或无法完成确认 | 确认时库中已无对应充值记录；或内存池交易被替换/驱逐且未上链等 |
 
-**兼容约定：**
+**接入建议：** 按 `txid` + `address` 幂等处理；`mempool` / `packed` 仅作进度通知，资金入账以 `success` 为准。
 
-- 若请求体中 **未包含 `op` 或 `op` 为空**，商户侧应视为 **`confirmed`**（与其它链充值成功回调一致）。
-- `op` 与 `status` 独立：`status` 表示业务结果（如 `success` / `cancel`），`op` 表示通知阶段。
+* BTC 内存池示例（`status=mempool`）
 
-* BTC 入账（未确认）示例（`op=add`）
+```json
+{
+  "accountID": "100200300",
+  "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "chain": "btc",
+  "confirmations": 0,
+  "height": 0,
+  "status": "mempool",
+  "time": 1773150528,
+  "tokenAddress": "__BTC_NATIVE__",
+  "tokenSymbol": "BTC",
+  "tokenValue": "0.001",
+  "txid": "abc123..."
+}
+```
+
+* BTC 已打包（未确认）示例（`status=packed`）
 
 ```json
 {
@@ -659,7 +674,24 @@ BTC 充值回调在通用字段之外增加 **`op`**，用于区分同一笔 `tx
   "chain": "btc",
   "confirmations": 0,
   "height": 920000,
-  "op": "add",
+  "status": "packed",
+  "time": 1773150528,
+  "tokenAddress": "__BTC_NATIVE__",
+  "tokenSymbol": "BTC",
+  "tokenValue": "0.001",
+  "txid": "abc123..."
+}
+```
+
+* BTC 确认到账示例（`status=success`）
+
+```json
+{
+  "accountID": "100200300",
+  "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "chain": "btc",
+  "confirmations": 1,
+  "height": 920000,
   "status": "success",
   "time": 1773150528,
   "tokenAddress": "__BTC_NATIVE__",
@@ -669,17 +701,16 @@ BTC 充值回调在通用字段之外增加 **`op`**，用于区分同一笔 `tx
 }
 ```
 
-* BTC 确认到账示例（`op=confirmed`）
+* BTC 取消示例（`status=cancel`）
 
 ```json
 {
   "accountID": "100200300",
   "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "chain": "btc",
-  "confirmations": 1,
-  "height": 920000,
-  "op": "confirmed",
-  "status": "success",
+  "confirmations": 0,
+  "height": 0,
+  "status": "cancel",
   "time": 1773150528,
   "tokenAddress": "__BTC_NATIVE__",
   "tokenSymbol": "BTC",
