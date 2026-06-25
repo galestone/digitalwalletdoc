@@ -817,21 +817,14 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ### 客户地址监控回调（Tron）
 
-> 仅 Tron 链支持。开启后，当监控中的客户地址出现在任意交易的 from 或 to 时，平台会**扫块时立即**将该地址的余额信息推送到您配置的**客户地址监控回调 URL**，无需等待链上确认。
+> 仅 Tron 链支持。开启后，当监控中的客户地址出现在任意交易的 from 或 to 时，平台会将该地址的余额信息推送到您配置的**客户地址监控回调 URL**。
 
 **功能说明**
 
 - **充值监控**：客户向系统充值地址转账，系统将客户的付款地址（`from`）标记为**充值地址**并写入监控。此后该地址出现在任意交易中（无论收款还是付款），均立即推送回调。
 - **提现监控**：系统向客户地址打款并链上确认后，系统将客户的收款地址（`to`）标记为**提现地址**并写入监控。此后该地址出现在任意交易中，均立即推送回调。
 - 同一地址可同时为充值地址和提现地址。
-- `balanceChanged` 字段区分本次触发时余额是增加（收款）还是减少（付款）。
-- 监控记录默认保留 **90 天**（可在后台配置调整），到期后不再更新。
-
-**配置方式**
-
-1. 登录后台 → **商户管理** → 编辑对应商户，填写**客户地址监控回调地址**（`customerAddrWebhookUrl`）。
-2. 进入 **Tron 商户配置**（TRX 或 TRC20），开启**客户地址监控**开关（`customerAddrMonitorOn`）。
-   - 若商户未配置回调地址，开启开关时后台会提示错误，需先完成第 1 步。
+- 监控记录默认保留 **90 天**，到期后不再更新。
 
 **回调数据格式**
 
@@ -847,10 +840,10 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
     "isDepositAddr": true,
     "isWithdrawAddr": false,
     "systemDepositAddr": "THotYegdHdngfJBRMpzTiT8J8yV4XhBBfo",
-    "balanceChanged": "decrease",
     "detail": {
         "txid": "336fc08775278c406ccd1506865d4ac4f1b20c44d7c0a349c4bced36a519ecd9",
-        "height": "53310985"
+        "height": "53310985",
+        "balanceChanged": "decrease"
     }
 }
 ```
@@ -865,9 +858,9 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 | isDepositAddr | bool | 是否为充值地址（曾向系统地址充值） |
 | isWithdrawAddr | bool | 是否为提现地址（系统曾向该地址打款） |
 | systemDepositAddr | string | 关联的系统充值地址（仅充值地址有值；同一客户地址多次充值到不同系统地址时，保留最后一次） |
-| balanceChanged | string | 余额变化方向：`increase`（收到资金）或 `decrease`（转出资金） |
-| detail.txid | string | 触发本次回调的交易哈希 |
-| detail.height | string | 触发本次回调的区块高度 |
+| detail.balanceChanged | string | 余额变化方向：`increase`（收到资金）、`decrease`（转出资金）或 `manual`（手动触发同步） |
+| detail.txid | string | 触发本次回调的交易哈希；手动触发时为空字符串 |
+| detail.height | string | 触发本次回调的区块高度；手动触发时为空字符串 |
 
 响应要求与其他回调一致：**HTTP 200**，body 返回 `ok`。
 
