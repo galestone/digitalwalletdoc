@@ -831,7 +831,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 - **充值监控**：客户向系统充值地址转账，系统将客户的付款地址（`from`）标记为**充值地址**并写入监控。此后该地址出现在任意交易中（无论收款还是付款），均立即推送监控回调。
 - **提现监控**：系统向客户地址打款并链上确认后，若创建提现时在请求中传入了 **accountID**（V1 为 **addressIdx**），才会将客户收款地址（`to`）写入监控；**未传则不监控**。此后该地址出现在任意交易中，均立即推送监控回调。
-- 监控记录按 **systemDepositAddr**（关联系统钱包地址：充值为收款地址 `to`，提现为出款地址 `from`）区分：同一客户地址若分别关联不同系统钱包，将产生**多条**监控记录。`accountID` 仅作查询与回调展示，不参与唯一性判断。
+- 监控记录按 **systemDepositAddr**（`accountID` 在 `tron_addrs` 中对应的系统充值地址）区分：充值监控在客户向该地址转账时建立；提现监控在创建提现时传入 `accountID` 后，以同一 `accountID` 的充值地址作为关联键。同一客户地址若分别关联不同 `accountID`，将产生**多条**监控记录。
 
 ### 查询监控列表
 
@@ -898,7 +898,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
         },
         {
             "addressIdx": "10002",
-            "systemDepositAddr": "TWithdrawFromAddr1234567890123456",
+            "systemDepositAddr": "TAnotherSystemDepositAddr123456789012",
             "isDepositAddr": false,
             "isWithdrawAddr": true
         }
@@ -920,9 +920,9 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 | balance | string | 触发时该客户地址的链上代币余额 |
 | relations | array | 与系统钱包的关联列表，每项对应一条监控记录 |
 | relations[].addressIdx | string | 系统钱包 accountID |
-| relations[].systemDepositAddr | string | 关联系统钱包地址（充值 `to` / 提现 `from`） |
+| relations[].systemDepositAddr | string | `accountID` 对应的系统充值地址（`tron_addrs.addr`） |
 | relations[].isDepositAddr | bool | 是否因向该 `systemDepositAddr` 充值而监控 |
-| relations[].isWithdrawAddr | bool | 是否因从该 `systemDepositAddr` 提现而监控 |
+| relations[].isWithdrawAddr | bool | 是否因创建提现时传入对应 `accountID` 而监控 |
 | detail.balanceChanged | string | 余额变化方向：`increase`（收到资金）、`decrease`（转出资金）或 `manual`（手动触发同步） |
 | detail.txid | string | 触发本次回调的交易哈希；手动触发时省略 |
 | detail.height | string | 触发本次回调的区块高度；手动触发时省略 |
