@@ -27,7 +27,9 @@
       - [BTC 充值 status 说明](#btc-充值-status-说明)
     - [提现回调](#提现回调)
     - [回调客户返回值](#回调客户返回值)
-    - [客户地址监控回调（Tron）](#客户地址监控回调tron)
+  - [客户地址监控（Tron）](#客户地址监控tron)
+    - [查询监控列表](#查询监控列表)
+    - [监控回调](#监控回调)
   - [Telegram 通知接入](#telegram-通知接入)
     - [获取 Bot Token](#获取-bot-token)
     - [获取通知群的 Chat ID](#获取通知群的-chat-id)
@@ -109,6 +111,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | 提现 | GET  | `/v2/withdraw/get`     | 按chain 和 orderID 查询提现   |
 | 提现 | POST | `/v2/withdraw/cancel`  | 取消提现                      |
 | 提现 | GET  | `/v2/withdraw/balance` | 查询提现地址余额              |
+| 监控 | GET  | `/v2/customer-addr-monitor/list` | 按 accountID 查询客户地址监控（目前仅 tron） |
 
 ### 通用响应结构
 
@@ -412,6 +415,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | amount       | string | 是   | 提现数量（支持小数）                                 |
 | orderID      | string | 是   | 商户提现订单号，商户内唯一                           |
 | callbackURL  | string | 否   | 订单级提现回调地址；非空时优先于商户默认提现回调地址 |
+| accountID    | string | 否   | 系统钱包 accountID（与充值 addressIdx 同义），用于关联客户地址监控；未传时 daemon 从出款地址反查 |
 
 请求body示例
 ```json
@@ -421,7 +425,8 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
     "contractAddr": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
     "amount": "12",
     "orderID": "D20260308832",
-    "callbackURL": "http://127.0.0.1:28080/merchant/testwithdrawwebhook/create"
+    "callbackURL": "http://127.0.0.1:28080/merchant/testwithdrawwebhook/create",
+    "accountID": "10001"
 }
 ```
 
@@ -813,22 +818,70 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 ```
 
 ### 回调客户返回值
-客户收到通知后，响应码需是200，并且应答body里必须返回ok。如不是正确响应，服务器会自动重试3次回调。
 
-### 客户地址监控回调（Tron）
+以上 [充值回调](#充值回调)、[提现回调](#提现回调) 收到通知后，响应码需是 **200**，并且应答 body 里必须返回 **`ok`**。如不是正确响应，服务器会自动重试 3 次回调。
 
-> 仅 Tron 链支持。开启后，当监控中的客户地址出现在任意交易的 from 或 to 时，平台会将该地址的余额信息推送到您配置的**客户地址监控回调 URL**。
+---
+
+## 客户地址监控（Tron）
+
+> 仅 Tron 链支持。需在后台为对应 TRC20/TRX 配置开启客户地址监控，并配置**客户地址监控回调 URL**（与充值/提现回调 URL 独立）。
 
 **功能说明**
 
-- **充值监控**：客户向系统充值地址转账，系统将客户的付款地址（`from`）标记为**充值地址**并写入监控。此后该地址出现在任意交易中（无论收款还是付款），均立即推送回调。
-- **提现监控**：系统向客户地址打款并链上确认后，系统将客户的收款地址（`to`）标记为**提现地址**并写入监控。此后该地址出现在任意交易中，均立即推送回调。
-- 同一地址可同时为充值地址和提现地址。
-- 监控记录默认保留 **90 天**，到期后不再更新。
+- **充值监控**：客户向系统充值地址转账，系统将客户的付款地址（`from`）标记为**充值地址**并写入监控。此后该地址出现在任意交易中（无论收款还是付款），均立即推送监控回调。
+- **提现监控**：系统向客户地址打款并链上确认后，系统将客户的收款地址（`to`）标记为**提现地址**并写入监控。此后该地址出现在任意交易中，均立即推送监控回调。
+- 监控记录按 **systemDepositAddr**（关联系统钱包地址：充值为收款地址 `to`，提现为出款地址 `from`）区分：同一客户地址若分别关联不同系统钱包，将产生**多条**监控记录。`accountID` 仅作查询与回调展示，不参与唯一性判断。
+- 监控记录默认保留 **90** 天**，到期后不再更新。
+
+### 查询监控列表
+
+**GET** `/v2/customer-addr-monitor/list`
+
+按 accountID 查询该钱包下客户地址的监控变化（余额、最近交易等）。目前仅支持 `chain=tron`，不传时默认为 `tron`。
+
+| 参数         | 类型   | 必填 | 说明                                   |
+| ------------ | ------ | ---- | -------------------------------------- |
+| chain        | string | 否   | 链标识，目前仅支持 `tron`；不传默认为 `tron` |
+| accountID    | string | 是   | 系统钱包 accountID（数字或 hash 字符串） |
+| contractAddr | string | 否   | 过滤合约地址                           |
+
+响应 `data`：`total` 为条数，`items` 为 `TronCustomerAddrMonitor` 数组（按 `updatedAt` 降序），含 `accountID`、`addr`、`balance`、`lastTxID`、`isDepositAddr`、`isWithdrawAddr`、`systemDepositAddr`、`updatedAt` 等。
+
+响应示例：
+
+```json
+{
+    "code": 0,
+    "msg": "success",
+    "data": {
+        "total": 1,
+        "items": [
+            {
+                "id": "5",
+                "merchantID": "2050166292215762944",
+                "accountID": "100200300",
+                "contractAddr": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+                "addr": "TCCekL6T3xrpXGPXUMoV1YarknAPLayVxH",
+                "isDepositAddr": true,
+                "isWithdrawAddr": false,
+                "balance": "9919.436",
+                "lastTxID": "f7c4a3c9bee91a768117795b12f20b443a5841505b2a16b8e89d02d2b4076da7",
+                "systemDepositAddr": "TAMAM25rkuuZffxyAvEwnvHF1jwoZwAKxg",
+                "expireAt": "2026-09-26T07:54:25.695+08:00",
+                "createdAt": "2026-06-28T07:54:25.505+08:00",
+                "updatedAt": "2026-06-28T07:54:25.698+08:00"
+            }
+        ]
+    }
+}
+```
+
+### 监控回调
+
+当监控中的客户地址出现在任意交易的 from 或 to 时，平台以 **POST** 方式向**客户地址监控回调 URL** 推送 JSON，签名方式与充值/提现回调一致（参见[签名校验](#签名校验)）。
 
 **回调数据格式**
-
-平台以 **POST** 方式向配置的 URL 推送 JSON，签名方式与充值/提现回调一致（参见[签名校验](#签名校验)）：
 
 ```json
 {
@@ -837,9 +890,20 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
     "symbol": "USDT",
     "addr": "TExampleCustomerAddress1234567890AB",
     "balance": "123.456789",
-    "isDepositAddr": true,
-    "isWithdrawAddr": false,
-    "systemDepositAddr": "THotYegdHdngfJBRMpzTiT8J8yV4XhBBfo",
+    "relations": [
+        {
+            "addressIdx": "10001",
+            "systemDepositAddr": "THotYegdHdngfJBRMpzTiT8J8yV4XhBBfo",
+            "isDepositAddr": true,
+            "isWithdrawAddr": false
+        },
+        {
+            "addressIdx": "10002",
+            "systemDepositAddr": "TWithdrawFromAddr1234567890123456",
+            "isDepositAddr": false,
+            "isWithdrawAddr": true
+        }
+    ],
     "detail": {
         "txid": "336fc08775278c406ccd1506865d4ac4f1b20c44d7c0a349c4bced36a519ecd9",
         "height": "53310985",
@@ -855,14 +919,16 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 | symbol | string | 代币符号，如 `USDT`、`TRX` |
 | addr | string | 被监控的客户地址 |
 | balance | string | 触发时该客户地址的链上代币余额 |
-| isDepositAddr | bool | 是否为充值地址（曾向系统地址充值） |
-| isWithdrawAddr | bool | 是否为提现地址（系统曾向该地址打款） |
-| systemDepositAddr | string | 关联的系统充值地址（仅充值地址有值；同一客户地址多次充值到不同系统地址时，保留最后一次） |
+| relations | array | 与系统钱包的关联列表，每项对应一条监控记录 |
+| relations[].addressIdx | string | 系统钱包 accountID |
+| relations[].systemDepositAddr | string | 关联系统钱包地址（充值 `to` / 提现 `from`） |
+| relations[].isDepositAddr | bool | 是否因向该 `systemDepositAddr` 充值而监控 |
+| relations[].isWithdrawAddr | bool | 是否因从该 `systemDepositAddr` 提现而监控 |
 | detail.balanceChanged | string | 余额变化方向：`increase`（收到资金）、`decrease`（转出资金）或 `manual`（手动触发同步） |
-| detail.txid | string | 触发本次回调的交易哈希；手动触发时为空字符串 |
-| detail.height | string | 触发本次回调的区块高度；手动触发时为空字符串 |
+| detail.txid | string | 触发本次回调的交易哈希；手动触发时省略 |
+| detail.height | string | 触发本次回调的区块高度；手动触发时省略 |
 
-响应要求与其他回调一致：**HTTP 200**，body 返回 `ok`。
+**回调响应要求**：HTTP **200**，body 返回 **`ok`**（与充值/提现回调一致；监控回调失败时平台仅记录日志，不会自动重试）。
 
 ---
 
