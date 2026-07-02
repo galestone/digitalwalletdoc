@@ -825,19 +825,18 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ## 客户地址监控（Tron）
 
-> 仅 Tron 链支持。需在后台为对应 TRC20/TRX 配置开启客户地址监控，并配置**客户地址监控回调 URL**（与充值/提现回调 URL 独立）。
+> 仅 Tron 链支持。需在后台为对应 TRC20/TRX 配置开启客户地址监控，并可选配置**客户地址监控回调 URL**（与充值/提现回调 URL 独立）。
 
 **功能说明**
 
-- **充值监控**：客户向系统充值地址转账，系统将客户的付款地址（`from`）标记为**充值地址**并写入监控。此后该地址出现在任意交易中（无论收款还是付款），均立即推送监控回调。
-- **提现监控**：系统向客户地址打款并链上确认后，若创建提现时在请求中传入了 **accountID**（V1 为 **addressIdx**），才会将客户收款地址（`to`）写入监控；**未传则不监控**。此后该地址出现在任意交易中，均立即推送监控回调。
-- 监控记录按 **systemDepositAddr**（`accountID` 在 `tron_addrs` 中对应的系统充值地址）区分：充值监控在客户向该地址转账时建立；提现监控在创建提现时传入 `accountID` 后，以同一 `accountID` 的充值地址作为关联键。同一客户地址若分别关联不同 `accountID`，将产生**多条**监控记录。
+- **充值登记**：客户向系统充值地址转账成功后，系统将客户的付款地址（`from`）登记为**充值地址**并写入监控表。
+- **提现登记**：创建提现订单后、daemon 开始处理时，若请求中传入了 **accountID**（V1 为 **addressIdx**），将客户收款地址（`to`）登记为**提现地址**；**未传则不登记**。
 
 ### 查询监控列表
 
 **GET** `/v2/customer-addr-monitor/list`
 
-按 accountID 查询该钱包下客户地址的监控变化（余额、最近交易等）。目前仅支持 `chain=tron`，不传时默认为 `tron`。
+按 accountID 查询该钱包下客户地址监控记录；返回前会逐条查链刷新余额。目前仅支持 `chain=tron`，不传时默认为 `tron`。
 
 | 参数         | 类型   | 必填 | 说明                                   |
 | ------------ | ------ | ---- | -------------------------------------- |
@@ -845,7 +844,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 | accountID    | string | 是   | 系统钱包 accountID（数字或 hash 字符串） |
 | contractAddr | string | 否   | 过滤合约地址                           |
 
-响应 `data`：`total` 为条数，`items` 为 `TronCustomerAddrMonitor` 数组（按 `updatedAt` 降序），含 `accountID`、`addr`、`balance`、`lastTxID`、`isDepositAddr`、`isWithdrawAddr`、`systemDepositAddr`、`updatedAt` 等。
+响应 `data`：`total` 为条数，`items` 为 `TronCustomerAddrMonitor` 数组（按 `updatedAt` 降序），含 `accountID`、`addr`、`balance`、`isDepositAddr`、`isWithdrawAddr`、`systemDepositAddr`、`expireAt`、`updatedAt` 等。
 
 响应示例：
 
@@ -865,7 +864,6 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
                 "isDepositAddr": true,
                 "isWithdrawAddr": false,
                 "balance": "9919.436",
-                "lastTxID": "f7c4a3c9bee91a768117795b12f20b443a5841505b2a16b8e89d02d2b4076da7",
                 "systemDepositAddr": "TAMAM25rkuuZffxyAvEwnvHF1jwoZwAKxg",
                 "expireAt": "2026-09-26T07:54:25.695+08:00",
                 "createdAt": "2026-06-28T07:54:25.505+08:00",
@@ -878,54 +876,39 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ### 监控回调
 
-当监控中的客户地址出现在任意交易的 from 或 to 时，平台以 **POST** 方式向**客户地址监控回调 URL** 推送 JSON，签名方式与充值/提现回调一致（参见[签名校验](#签名校验)）。
+当配置了**客户地址监控回调 URL** 时，平台以 **POST** 方式推送 **TronCustomerAddrMonitor** 记录 JSON（与列表接口单条 `items` 结构一致），签名方式与充值/提现回调一致（参见[签名校验](#签名校验)）。
 
-**回调数据格式**
+**回调数据格式**（即单条监控记录）：
 
 ```json
 {
-    "chain": "tron",
+    "id": "5",
+    "merchantID": "2050166292215762944",
+    "accountID": "100200300",
     "contractAddr": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
-    "symbol": "USDT",
     "addr": "TExampleCustomerAddress1234567890AB",
+    "isDepositAddr": true,
+    "isWithdrawAddr": false,
     "balance": "123.456789",
-    "relations": [
-        {
-            "addressIdx": "10001",
-            "systemDepositAddr": "THotYegdHdngfJBRMpzTiT8J8yV4XhBBfo",
-            "isDepositAddr": true,
-            "isWithdrawAddr": false
-        },
-        {
-            "addressIdx": "10002",
-            "systemDepositAddr": "TAnotherSystemDepositAddr123456789012",
-            "isDepositAddr": false,
-            "isWithdrawAddr": true
-        }
-    ],
-    "detail": {
-        "txid": "336fc08775278c406ccd1506865d4ac4f1b20c44d7c0a349c4bced36a519ecd9",
-        "height": "53310985",
-        "balanceChanged": "decrease"
-    }
+    "systemDepositAddr": "THotYegdHdngfJBRMpzTiT8J8yV4XhBBfo",
+    "expireAt": "2026-09-26T07:54:25.695+08:00",
+    "createdAt": "2026-06-28T07:54:25.505+08:00",
+    "updatedAt": "2026-06-28T07:54:25.698+08:00"
 }
 ```
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| chain | string | 链标识，固定为 `tron` |
-| contractAddr | string | 代币合约地址；TRX（原生代币）为空字符串 `""` |
-| symbol | string | 代币符号，如 `USDT`、`TRX` |
+| id | string | 监控记录 ID |
+| merchantID | string | 商户 ID |
+| accountID | string | 系统钱包 accountID |
+| contractAddr | string | 代币合约地址；TRX 使用占位常量 |
 | addr | string | 被监控的客户地址 |
-| balance | string | 触发时该客户地址的链上代币余额 |
-| relations | array | 与系统钱包的关联列表，每项对应一条监控记录 |
-| relations[].addressIdx | string | 系统钱包 accountID |
-| relations[].systemDepositAddr | string | `accountID` 对应的系统充值地址（`tron_addrs.addr`） |
-| relations[].isDepositAddr | bool | 是否因向该 `systemDepositAddr` 充值而监控 |
-| relations[].isWithdrawAddr | bool | 是否因创建提现时传入对应 `accountID` 而监控 |
-| detail.balanceChanged | string | 余额变化方向：`increase`（收到资金）、`decrease`（转出资金）或 `manual`（手动触发同步） |
-| detail.txid | string | 触发本次回调的交易哈希；手动触发时省略 |
-| detail.height | string | 触发本次回调的区块高度；手动触发时省略 |
+| isDepositAddr | bool | 是否为客户充值地址 |
+| isWithdrawAddr | bool | 是否为客户提现地址 |
+| balance | string | 客户地址链上代币余额 |
+| systemDepositAddr | string | accountID 对应的系统充值地址 |
+| expireAt | string | 过期时间 |
 
 **回调响应要求**：HTTP **200**，body 返回 **`ok`**（与充值/提现回调一致；监控回调失败时平台仅记录日志，不会自动重试）。
 
