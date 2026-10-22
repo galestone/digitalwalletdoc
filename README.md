@@ -14,6 +14,7 @@
     - [创建充值 / 获取地址](#创建充值--获取地址)
     - [充值订单列表](#充值订单列表)
     - [查询充值订单](#查询充值订单)
+    - [无订单充值查询](#无订单充值查询)
     - [取消充值订单](#取消充值订单)
   - [地址列表](#地址列表)
   - [提现（Withdraw）](#提现withdraw)
@@ -104,6 +105,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | 充值 | POST | `/v2/deposit/create`   | 创建充值/获取地址（可选订单） |
 | 充值 | GET  | `/v2/deposit/list`     | 充值订单列表（分页）          |
 | 充值 | GET  | `/v2/deposit/get`      | 按 orderID 查询充值订单       |
+| 充值 | GET | `/v2/deposit/lookup` | 按 chain、txid 核实充值，无需 orderID |
 | 充值 | POST | `/v2/deposit/cancel`   | 取消充值订单                  |
 | 地址 | GET  | `/v2/address/list`     | 地址列表（按链分页）          |
 | 提现 | POST | `/v2/withdraw/create`  | 创建提现                      |
@@ -317,6 +319,112 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
     }
 }
 ```
+
+---
+
+### 无订单充值查询
+
+**GET** `/v2/deposit/lookup`
+
+商户收到充值回调后，可以通过本接口二次核实充值。无需创建订单或提供 `orderID`，直接查询当前商户的充值记录，不依赖回调历史，也不会实时请求链节点。
+
+请求头必须携带 `apikey`，请求来源须符合商户 IP 白名单。GET 请求无需 `X-Signature`。
+
+**Query 参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| chain | string | 是 | `tron`、`eth`、`ton`、`btc`，使用充值回调中的 chain |
+| txid | string | 是 | 充值回调中的交易哈希 |
+| address | string | 否 | 收款地址，建议传回调中的 address |
+| tokenAddress | string | 否 | 代币标识，建议传回调中的 tokenAddress |
+
+同一交易可能对应多个收款地址或多种代币。仅匹配到一条时返回成功；匹配多条时应补充筛选条件，不会任意选取其中一条。
+
+**cURL 示例：**
+
+```bash
+curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
+  --header 'apikey: your_merchant_api_key_here' \
+  --data-urlencode 'chain=tron' \
+  --data-urlencode 'txid=交易哈希' \
+  --data-urlencode 'address=收款地址' \
+  --data-urlencode 'tokenAddress=代币合约地址'
+```
+
+请替换服务地址、API Key 及交易参数；最后两个筛选参数可按需省略。
+
+**成功响应：** `data` 直接是与[充值回调](#充值回调)请求体相同结构的单个对象，没有 `items` 或 `item` 包装。
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "address": "收款地址",
+    "txid": "交易哈希",
+    "time": 1792627200,
+    "confirmations": 20,
+    "chain": "tron",
+    "height": 80000000,
+    "tokenAddress": "代币合约地址",
+    "tokenSymbol": "USDT",
+    "tokenValue": "100",
+    "fromTokenValue": "500",
+    "accountID": "123",
+    "orderID": "",
+    "status": "success"
+  }
+}
+```
+
+| data 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| address | string | 收款地址 |
+| txid | string | 交易哈希 |
+| time | int64 | 交易时间，Unix 秒 |
+| confirmations | int64 | 系统最近保存的确认数，不是实时查询值 |
+| chain | string | 所属链 |
+| height | int64 | 交易所在区块高度 |
+| tokenAddress | string | 代币合约地址或原生币标识 |
+| tokenSymbol | string | 代币符号 |
+| tokenValue | decimal string | 充值金额，按十进制精确处理 |
+| fromTokenValue | decimal string | 充值发生时发送地址的对应代币链上余额 |
+| accountID | string | 商户账户编号 |
+| orderID | string | 本接口面向无订单充值，返回空字符串 |
+| status | string | 业务状态，见下表；不是回调投递状态 |
+
+原生 ETH 的 tokenAddress 为 `0x0000000000000000000000000000000000000000`，原生 BTC 为 `__BTC_NATIVE__`。原生 TON 与现有回调一致，返回空 tokenAddress；查询时可用 `__TON_NATIVE__` 筛选。
+
+| status | 含义 |
+| --- | --- |
+| success | 充值已确认 |
+| packed | 已打包，等待确认 |
+| mempool | 内存池中，尚未打包 |
+| failed | 充值失败 |
+| cancel | 已取消 |
+
+查询返回最新保存的状态和确认数，可能与之前发送的回调数值不同。商户应核对链、交易哈希、收款地址、代币、金额及账户，仅在 `code=0` 且 `data.status="success"` 时按业务规则幂等入账。
+
+**未查到响应：** 返回非零 code，省略无值的 data。
+
+```json
+{
+  "code": 10004,
+  "msg": "无记录"
+}
+```
+
+未查到不代表链上交易失败，可能尚未被系统识别，或 API Key 所属商户、连接环境、查询条件不匹配。
+
+**其他异常：** 同样返回非零 code 和说明原因的 msg，不返回业务 data。
+
+| code | 原因 |
+| --- | --- |
+| 10001 | 参数错误，或匹配多条；多条时提示补充 address 或 tokenAddress |
+| 10000 | 充值状态未知，暂时无法确认 |
+
+鉴权及数据库异常沿用平台统一错误处理。查询成功不代替回调应答：商户成功处理充值通知后，仍须返回 HTTP 200 和纯文本 `ok`。
 
 ---
 
