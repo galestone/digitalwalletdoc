@@ -336,10 +336,10 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
 | --- | --- | --- | --- |
 | chain | string | 是 | `tron`、`eth`、`ton`、`btc`，使用充值回调中的 chain |
 | txid | string | 是 | 充值回调中的交易哈希 |
-| address | string | 否 | 收款地址，建议传回调中的 address |
-| tokenAddress | string | 否 | 代币标识，建议传回调中的 tokenAddress |
+| address | string | 否 | 收款地址筛选，使用回调中的 address |
+| tokenAddress | string | 否 | 代币筛选；原生 TON 使用 `__TON_NATIVE__`，其他使用回调中的 tokenAddress |
 
-同一交易可能对应多个收款地址或多种代币。仅匹配到一条时返回成功；匹配多条时应补充筛选条件，不会任意选取其中一条。
+仅 chain 和 txid 必填。address、tokenAddress 未传或为空白时不参与筛选。匹配多条时返回第 0 条记录，并在服务端输出错误日志，不因多条匹配返回错误。各充值表内按 id 升序；ETH 先查询原生 ETH，再查询 ERC20，返回合并结果的第 0 条。返回金额仅代表该条记录，不合计其他充值。
 
 **cURL 示例：**
 
@@ -352,7 +352,7 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
   --data-urlencode 'tokenAddress=代币合约地址'
 ```
 
-请替换服务地址、API Key 及交易参数；最后两个筛选参数可按需省略。
+请替换服务地址、API Key 及交易参数；仅 chain、txid 必填，最后两个筛选参数可以省略。
 
 **成功响应：** `data` 直接是与[充值回调](#充值回调)请求体相同结构的单个对象，没有 `items` 或 `item` 包装。
 
@@ -394,7 +394,7 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
 | orderID | string | 本接口面向无订单充值，返回空字符串 |
 | status | string | 业务状态，见下表；不是回调投递状态 |
 
-原生 ETH 的 tokenAddress 为 `0x0000000000000000000000000000000000000000`，原生 BTC 为 `__BTC_NATIVE__`。原生 TON 与现有回调一致，返回空 tokenAddress；查询时可用 `__TON_NATIVE__` 筛选。
+原生 ETH 的 tokenAddress 为 `0x0000000000000000000000000000000000000000`，原生 BTC 为 `__BTC_NATIVE__`。原生 TON 与现有回调一致，返回空 tokenAddress；筛选原生 TON 时传 `__TON_NATIVE__`。
 
 | status | 含义 |
 | --- | --- |
@@ -421,7 +421,7 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
 
 | code | 原因 |
 | --- | --- |
-| 10001 | 参数错误，或匹配多条；多条时提示补充 address 或 tokenAddress |
+| 10001 | 参数错误 |
 | 10000 | 充值状态未知，暂时无法确认 |
 
 鉴权及数据库异常沿用平台统一错误处理。查询成功不代替回调应答：商户成功处理充值通知后，仍须返回 HTTP 200 和纯文本 `ok`。
