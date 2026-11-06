@@ -249,7 +249,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
                 "expireAt": 1773150908,
                 "status": 2,
                 "fromTokenValueOnChain": "82.22",
-                "callbackReq": "{\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
+                "callbackReq": "{\"merchantID\":\"2010528069227384832\",\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
                 "callbackResp": "ok",
                 "callbackURL": "http://127.0.0.1:28080/merchant/testdeposit/create",
                 "createdAt": "2026-03-10T21:47:53.285+08:00",
@@ -311,7 +311,7 @@ digest = hmac.new(key, data, digestmod=hashlib.sha256).hexdigest()
         "expireAt": 1773150908,
         "status": 2,
         "fromTokenValueOnChain": "82.22",
-        "callbackReq": "{\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
+        "callbackReq": "{\"merchantID\":\"2010528069227384832\",\"address\":\"0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428\",\"txid\":\"0x3d3e66d550658dc0b7fb2c5f406f284da79bf47be39ff8caf7cb8c2564d9d77d\",\"time\":1773150528,\"confirmations\":1,\"chain\":\"eth\",\"height\":10421051,\"tokenAddress\":\"0xb65f0057aee4e3d511607a050379b7558a15c67d\",\"tokenSymbol\":\"USDT\",\"tokenValue\":\"13.223\",\"accountID\":\"100200300\",\"orderID\":\"W302603188007\",\"status\":\"success\"}",
         "callbackResp": "ok",
         "callbackURL": "W302603188007",
         "createdAt": "2026-03-10T21:47:53.285+08:00",
@@ -361,6 +361,7 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
   "code": 0,
   "msg": "success",
   "data": {
+    "merchantID": "2010528069227384832",
     "address": "收款地址",
     "txid": "交易哈希",
     "time": 1792627200,
@@ -380,6 +381,7 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
 
 | data 字段 | 类型 | 说明 |
 | --- | --- | --- |
+| merchantID | string | 当前 API Key 所属商户 ID |
 | address | string | 收款地址 |
 | txid | string | 交易哈希 |
 | time | int64 | 交易时间，Unix 秒 |
@@ -731,9 +733,13 @@ curl --get 'http://127.0.0.1:21001/v2/deposit/lookup' \
 --- 
 
 ## 回调说明
+
+充值、提现和[客户地址监控回调](#监控回调)均在请求体顶层携带 `merchantID`，用于标识所属商户，类型为 **string**，例如 `"merchantID": "2010528069227384832"`。充值、提现的所有状态通知以及自动重试、后台手动重试均携带该字段，旧历史记录重发时也会带上。`merchantID` 与 `accountID` 含义不同，后者是商户侧账户 ID。验签时使用包含 `merchantID` 的完整原始请求体计算 `X-Signature`。
+
 ### 充值回调
 | 字段名         | 类型   | 说明                                                    |
 | -------------- | ------ | ------------------------------------------------------- |
+| merchantID     | string | 所属商户 ID |
 | accountID      | string | 商户在钱包平台的唯一账号标识                            |
 | address        | string | 充值收款地址                                            |
 | chain          | string | 区块链名称，如 `eth`、`tron`、`ton`、`btc`                |
@@ -765,6 +771,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ```json
 {
+  "merchantID": "2010528069227384832",
   "accountID": "100200300",
   "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "chain": "btc",
@@ -783,6 +790,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ```json
 {
+  "merchantID": "2010528069227384832",
   "accountID": "100200300",
   "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "chain": "btc",
@@ -801,6 +809,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ```json
 {
+  "merchantID": "2010528069227384832",
   "accountID": "100200300",
   "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "chain": "btc",
@@ -819,6 +828,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 
 ```json
 {
+  "merchantID": "2010528069227384832",
   "accountID": "100200300",
   "address": "tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "chain": "btc",
@@ -836,6 +846,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 * 正常回调示例
 ```json
 {
+    "merchantID": "2010528069227384832",
     "accountID": "100200300",
     "address": "0x3ca5ef10aa02a9bdf3e4f4bc3370e54489cc3428",
     "chain": "eth",
@@ -855,6 +866,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
   * 超时
     ```json
     {
+        "merchantID": "2010528069227384832",
         "accountID": "100200300",
         "address": "0x3ca5eF10aA02a9bdf3E4F4Bc3370E54489Cc3428",
         "chain": "eth",
@@ -873,6 +885,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
   * 取消
     ```json
     {
+        "merchantID": "2010528069227384832",
         "accountID": "100200300",
         "address": "0x3ca5eF10aA02a9bdf3E4F4Bc3370E54489Cc3428",
         "chain": "eth",
@@ -891,6 +904,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 ### 提现回调
 | 字段名                     | 类型   | 说明                                                                                                                   |
 | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
+| merchantID                 | string | 所属商户 ID |
 | address                    | string | 提现地址                                                                                                               |
 | chain                      | string | 区块链名称，如 `eth`、`tron`、`ton`                                                                                    |
 | confirmations              | int    | 区块链上确认数（通常 ≥1 表示已到账）                                                                                   |
@@ -909,6 +923,7 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 * 正常回调示例
 ```json
 {
+    "merchantID": "2010528069227384832",
     "address": "TCCekL6T3xrpXGPXUMoV1YarknAPLayVxH",
     "chain": "tron",
     "confirmations": 1,
@@ -985,6 +1000,8 @@ BTC 同一笔 `txid` 可能收到多次回调，通过 **`status`** 区分阶段
 ### 监控回调
 
 当配置了**客户地址监控回调 URL** 时，平台以 **POST** 方式推送 **TronCustomerAddrMonitor** 记录 JSON（与列表接口单条 `items` 结构一致），签名方式与充值/提现回调一致（参见[签名校验](#签名校验)）。
+
+定时推送和后台手动触发的监控回调均包含字符串类型的 `merchantID`；此字段原已支持，与充值、提现回调保持一致。
 
 **回调数据格式**（即单条监控记录）：
 
